@@ -702,16 +702,16 @@
     }
   }
 
-  // Speak plain TTS (no pitch/reverb) via ResponsiveVoice or Web Speech API
+  // Speak plain TTS (no pitch/reverb) — fires and forgets, calls onDone when finished
   function speakPlainTTS(word, onDone) {
     if (window.responsiveVoice) {
       responsiveVoice.speak(word, "UK English Female", {
-        pitch: 1.0, rate: 0.85, volume: 0.56,
+        pitch: 1.0, rate: 0.85, volume: 0.4,
         onend: function() { if (onDone) onDone(); }
       });
     } else if (window.speechSynthesis) {
       var utter = new SpeechSynthesisUtterance(word);
-      utter.rate = 0.85; utter.pitch = 1.0; utter.volume = 0.56;
+      utter.rate = 0.85; utter.pitch = 1.0; utter.volume = 0.4;
       var voices = speechSynthesis.getVoices();
       var preferred = voices.find(function(v) { return /samantha|karen|moira|fiona|victoria/i.test(v.name); });
       if (preferred) utter.voice = preferred;
@@ -737,23 +737,8 @@
 
     S.speaking = true;
 
-    // Random mix per utterance: pick a blend between SAM singing and plain TTS
-    // Each call to speak() picks a style for this whole phrase
     var hasSam = window.SamJs && S.audioReady;
     var hasTTS = window.responsiveVoice || window.speechSynthesis;
-
-    // Random style: 0 = pure SAM singing, 1 = pure plain TTS, 2 = random per-word mix
-    var style;
-    if (hasSam && hasTTS) {
-      var r = Math.random();
-      if (r < 0.25) style = 0;       // 25% pure SAM singing with reverb
-      else if (r < 0.45) style = 1;  // 20% pure plain TTS (clear, no effects)
-      else style = 2;                // 55% random mix per word
-    } else if (hasSam) {
-      style = 0;
-    } else {
-      style = 1;
-    }
 
     var wi = 0;
     function nextWord() {
@@ -766,22 +751,21 @@
       var word = words[wi];
       wi++;
 
-      if (style === 0) {
-        // Pure SAM singing with pitch + reverb
-        var freq = S.currentNoteFreq > 0 ? S.currentNoteFreq : 261.63;
-        samSingWord(word, freq, nextWord);
-      } else if (style === 1) {
-        // Pure plain TTS — no pitch shifting, no reverb
-        speakPlainTTS(word, nextWord);
-      } else {
-        // Per-word random: 30-70% chance of each
-        var mix = 0.3 + Math.random() * 0.4; // 0.3 to 0.7
-        if (Math.random() < mix && hasSam) {
-          var freq2 = S.currentNoteFreq > 0 ? S.currentNoteFreq : 261.63;
-          samSingWord(word, freq2, nextWord);
-        } else {
-          speakPlainTTS(word, nextWord);
+      if (hasSam && hasTTS) {
+        // Both voices simultaneously — layered on top of each other
+        // SAM sings with reverb, TTS speaks clearly, both at once
+        var samDone = false, ttsDone = false;
+        function checkBoth() {
+          if (samDone && ttsDone) nextWord();
         }
+        var freq = S.currentNoteFreq > 0 ? S.currentNoteFreq : 261.63;
+        samSingWord(word, freq, function() { samDone = true; checkBoth(); });
+        speakPlainTTS(word, function() { ttsDone = true; checkBoth(); });
+      } else if (hasSam) {
+        var freq2 = S.currentNoteFreq > 0 ? S.currentNoteFreq : 261.63;
+        samSingWord(word, freq2, nextWord);
+      } else {
+        speakPlainTTS(word, nextWord);
       }
     }
     nextWord();

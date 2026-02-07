@@ -3,7 +3,7 @@
    Inspired by Windows Vista/7, Web 2.0 era
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=PT+Sans:wght@400;700&family=Nunito:wght@400;600;700;800&family=Cabin:wght@400;600;700&family=Trebuchet+MS&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=PT+Sans:wght@400;700&family=Nunito:wght@400;600;700;800&family=Cabin:wght@400;600;700&display=swap');
 
 /* ---------- RESET & BASE ---------- */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
